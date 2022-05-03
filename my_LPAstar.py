@@ -19,6 +19,7 @@ class LPA:
 
 		self.visited = set()
 		self.count = 0
+		self.count_va = 0
 
 
 	def initialize(self, G):
@@ -56,6 +57,8 @@ class LPA:
 		if self.g[s] != self.rhs[s]:
 			k1, k2 = self.calculateKey(s)
 			self.U.update(s, k1, k2)
+
+		self.count_va += 1
 
 
 	def cost(self, s1, s2):
@@ -106,6 +109,10 @@ class LPA:
 
 		return list(reversed(path))
 
+	def reset(self):
+		self.visited = set()
+		self.count_va = 0
+
 occ_map_path = f'{cfg.PATH.OCC_MAP}/2t7WUuJeko7_0'
 occupancy_map = np.load(f'{occ_map_path}/BEV_occupancy_map.npy', allow_pickle=True).item()['occupancy']
 
@@ -135,3 +142,35 @@ ax.get_xaxis().set_visible(False)
 ax.get_yaxis().set_visible(False)
 fig.tight_layout()
 plt.show()
+
+# update occupancy map
+obstacles = [(53, 83), (53, 84), (53, 85), (53, 86), (53, 87), (53, 88), (53, 89)]
+for obs in obstacles:
+	occupancy_map[obs] = 0
+G_prime = build_graph(occupancy_map)
+
+lpa.reset()
+for obs in obstacles:
+	u_succ = list(G.neighbors(obs))
+	for u in u_succ:
+		if u in G_prime.nodes:
+			lpa.updateVertex(u, G_prime)
+
+
+lpa.computeShortestPath(G_prime)
+path = lpa.extract_path(G_prime)
+path = np.array(path) # N x 2
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), dpi=125)
+ax.imshow(occupancy_map, cmap='gray', vmin=0, vmax=1)
+num_points = path.shape[0]
+ax.scatter(path[:, 1], path[:, 0], c=range(num_points), cmap='viridis', s=np.linspace(4, 2, num=num_points)**2, zorder=2)
+visited_points = np.array(list(lpa.visited))
+ax.scatter(visited_points[:, 1], visited_points[:, 0], c='c', marker='s')
+ax.get_xaxis().set_visible(False)
+ax.get_yaxis().set_visible(False)
+fig.tight_layout()
+plt.show()
+
+print(f've = {len(lpa.visited)}')
+print(f'va = {lpa.count_va}')
