@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from config import _C as cfg
 import networkx as nx
 import random
-from utils import PriorityQueue
+from utils import PriorityQueue, build_graph
 import math
 
 random.seed(cfg.GENERAL.RANDOM_SEED)
@@ -67,39 +67,43 @@ class TreeList():
 
 		return locs[::-1]
 
+class AStar:
+	def __init__(self, s_start, s_goal):
+		self.s_start = s_start
+		self.s_goal = s_goal
+
+		self.tree = TreeList()
+		self.visited = set()
+		self.Q = PriorityQueue()
 
 
-def AStarSearch(start_coords, goal_coords, G):
-	tree = TreeList()
-	visited = []
-	Q = PriorityQueue()
+	def computeShortestPath(self, G):
+		start_node = Node(self.s_start, None, 0.)
+		goal_node = Node(self.s_goal, None, 0.)
+		self.tree.insertNode(start_node)
+		self.Q.push(start_node.loc, 0)
 
-	start_node = Node(start_coords, None, 0.)
-	goal_node = Node(goal_coords, None, 0.)
-	tree.insertNode(start_node)
-	Q.push(start_node.loc, 0)
+		while True:
+			if self.Q.isEmpty():
+				print(f'failed to find the path ...')
+				return [] # fail the search
 
-	while True:
-		if Q.isEmpty():
-			print(f'failed to find the path ...')
-			return [] # fail the search
-
-		node_loc = Q.pop()
-		node = tree.getNode(node_loc)
-		if node.loc == goal_coords:
-			path = tree.formPath(node_loc)
-			return path
-		else:
-			for nei in list(G.neighbors(node.loc)):
-				dist = math.sqrt((nei[0] - node_loc[0])**2 + (nei[1] - node_loc[1])**2)
-				new_node = Node(nei, node, dist + node.cost)
-				tree.insertNode(new_node)
-				if nei not in visited:
-					heur = math.sqrt((nei[0] - goal_coords[0])**2 + (nei[1] - goal_coords[1])**2)
-					# update Q
-					Q.update(nei, new_node.cost + heur)
-			# add node to visited
-			visited.append(node_loc)
+			node_loc = self.Q.pop()
+			node = self.tree.getNode(node_loc)
+			if node.loc == self.s_goal:
+				path = self.tree.formPath(node_loc)
+				return path
+			else:
+				for nei in list(G.neighbors(node.loc)):
+					dist = math.sqrt((nei[0] - node_loc[0])**2 + (nei[1] - node_loc[1])**2)
+					new_node = Node(nei, node, dist + node.cost)
+					self.tree.insertNode(new_node)
+					if nei not in self.visited:
+						heur = math.sqrt((nei[0] - self.s_goal[0])**2 + (nei[1] - self.s_goal[1])**2)
+						# update Q
+						self.Q.update(nei, new_node.cost + heur)
+				# add node to visited
+				self.visited.add(node_loc)
 
 
 
@@ -109,17 +113,21 @@ occupancy_map = np.load(f'{occ_map_path}/BEV_occupancy_map.npy', allow_pickle=Tr
 
 G = build_graph(occupancy_map)
 
-start_coords = random.choice(list(G.nodes))
-reachable_locs = list(nx.node_connected_component(G, start_coords))
-end_coords = random.choice(reachable_locs)
-#AStarSearch()
+#start_coords = random.choice(list(G.nodes))
+#reachable_locs = list(nx.node_connected_component(G, start_coords))
+#end_coords = random.choice(reachable_locs)
+start_coords = (23, 21)
+end_coords = (76, 109)
 
-path = AStarSearch(start_coords, end_coords, G)
+astar = AStar(start_coords, end_coords)
+path = astar.computeShortestPath(G)
 path = np.array(path) # N x 2
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), dpi=125)
 ax.imshow(occupancy_map, cmap='gray', vmin=0, vmax=1)
 num_points = path.shape[0]
-ax.scatter(path[:, 1], path[:, 0], c=range(num_points), cmap='viridis', s=np.linspace(4, 2, num=num_points)**2)
+ax.scatter(path[:, 1], path[:, 0], c=range(num_points), cmap='viridis', s=np.linspace(4, 2, num=num_points)**2, zorder=2)
+visited_points = np.array(list(astar.visited))
+ax.scatter(visited_points[:, 1], visited_points[:, 0], c='c', marker='s')
 fig.tight_layout()
 plt.show()

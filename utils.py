@@ -85,7 +85,7 @@ class PQ_2keys:
 
 	def topKey(self):
 		item = hq.nsmallest(1, self.heap)[0]
-		print(f'item = {item}')
+		#print(f'item = {item}')
 		k1, k2, _, _ = item
 		return k1, k2
 

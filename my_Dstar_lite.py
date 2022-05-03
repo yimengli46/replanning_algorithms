@@ -8,7 +8,7 @@ import math
 
 random.seed(cfg.GENERAL.RANDOM_SEED)
 
-class LPA:
+class DStarLite:
 	def __init__(self, s_start, s_goal):
 		self.g = {}
 		self.rhs = {}
@@ -29,9 +29,9 @@ class LPA:
 			self.rhs[node] = float('inf')
 			self.g[node] = float('inf')
 
-		self.rhs[self.s_start] = 0
-		k1, k2 = self.calculateKey(self.s_start)
-		self.U.push(self.s_start, k1, k2)
+		self.rhs[self.s_goal] = 0
+		k1, k2 = self.calculateKey(self.s_goal)
+		self.U.push(self.s_goal, k1, k2)
 
 
 	def calculateKey(self, s):
@@ -46,9 +46,11 @@ class LPA:
 		return dist
 
 	def updateVertex(self, s, G):
-		if s != self.s_start:
+		if s != self.s_goal:
+			self.rhs[s] = float('inf')
 			neis = list(G.neighbors(s))
-			self.rhs[s] = min(self.g[s_n] + self.cost(s_n, s) for s_n in neis)
+			for s_n in neis:
+				self.rhs[s] = min(self.rhs[s], self.g[s_n] + self.cost(s, s_n))
 
 		self.U.remove(s)
 
@@ -66,19 +68,23 @@ class LPA:
 	def computeShortestPath(self, G):
 		while True:
 			top_k1, top_k2 = self.U.topKey()
-			goal_k1, goal_k2 = self.calculateKey(self.s_goal)
+			start_k1, start_k2 = self.calculateKey(self.s_start)
 
-			if [top_k1, top_k2] < [goal_k1, goal_k2] or \
-				self.rhs[self.s_goal] != self.g[self.s_goal]:
+			if [top_k1, top_k2] < [start_k1, start_k2] or \
+				self.rhs[self.s_start] != self.g[self.s_start]:
 				
+				k_old = [top_k1, top_k2]
 				u = self.U.pop()
 				#print(f'u = {u}')
 				self.visited.add(u)
 				
-				if self.g[u] > self.rhs[u]:
+				u_k1, u_k2 = self.calculateKey(u)
+				if k_old < [u_k1, u_k2]:
+					self.U.push(u, u_k1, u_k2)
+				elif self.g[u] > self.rhs[u]:
 					self.g[u] = self.rhs[u]
 				else:
-					self.g[u] = float('inf')
+					self.g[s] = float('inf')
 					self.updateVertex(u, G)
 
 				u_succ = list(G.neighbors(u))
@@ -90,8 +96,8 @@ class LPA:
 				break
 
 	def extract_path(self, G):
-		path = [self.s_goal]
-		s = self.s_goal
+		path = [self.s_start]
+		s = self.s_start
 
 		while True:
 			g_list = {}
@@ -101,37 +107,31 @@ class LPA:
 			s = min(g_list, key=g_list.get)
 			path.append(s)
 
-			if s == self.s_start:
+			if s == self.s_goal:
 				break
 
-		return list(reversed(path))
+		return list(path)
 
 occ_map_path = f'{cfg.PATH.OCC_MAP}/2t7WUuJeko7_0'
 occupancy_map = np.load(f'{occ_map_path}/BEV_occupancy_map.npy', allow_pickle=True).item()['occupancy']
 
 G = build_graph(occupancy_map)
 
-#start_coords = random.choice(list(G.nodes))
-#reachable_locs = list(nx.node_connected_component(G, start_coords))
-#end_coords = random.choice(reachable_locs)
+start_coords = random.choice(list(G.nodes))
+reachable_locs = list(nx.node_connected_component(G, start_coords))
+end_coords = random.choice(reachable_locs)
 
-start_coords = (23, 21)
-end_coords = (76, 109)
-
-lpa = LPA(start_coords, end_coords)
+lpa = DStarLite(start_coords, end_coords)
 lpa.initialize(G)
 lpa.computeShortestPath(G)
 
 path = lpa.extract_path(G)
+
 path = np.array(path) # N x 2
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), dpi=125)
 ax.imshow(occupancy_map, cmap='gray', vmin=0, vmax=1)
 num_points = path.shape[0]
-ax.scatter(path[:, 1], path[:, 0], c=range(num_points), cmap='viridis', s=np.linspace(4, 2, num=num_points)**2, zorder=2)
-visited_points = np.array(list(lpa.visited))
-ax.scatter(visited_points[:, 1], visited_points[:, 0], c='c', marker='s')
-ax.get_xaxis().set_visible(False)
-ax.get_yaxis().set_visible(False)
+ax.scatter(path[:, 1], path[:, 0], c=range(num_points), cmap='viridis', s=np.linspace(4, 2, num=num_points)**2)
 fig.tight_layout()
 plt.show()
