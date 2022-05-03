@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) +
                 "/../../Search_based_Planning/")
 
-from Search_2D import plotting, env
+import plotting, env
 
 
 class LPAStar:
@@ -127,6 +127,7 @@ class LPAStar:
             # Condition: current cost to come is different to that of last time
             # state s should be added into OPEN set (set U)
             self.U[s] = self.CalculateKey(s)
+            print(f'key = {self.CalculateKey(s)}')
 
     def TopKey(self):
         """

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from config import _C as cfg
 import networkx as nx
 import random
-import heapq as hq
+from utils import PriorityQueue
 import math
 
 random.seed(cfg.GENERAL.RANDOM_SEED)
@@ -67,43 +67,7 @@ class TreeList():
 
 		return locs[::-1]
 
-class PriorityQueue:
-	"""
-	  Implements a priority queue data structure. Each inserted item
-	  has a priority associated with it and the client is usually interested
-	  in quick retrieval of the lowest-priority item in the queue. This
-	  data structure allows O(1) access to the lowest-priority item.
-	"""
-	def  __init__(self):
-		self.heap = []
-		self.count = 0
 
-	def push(self, item, priority):
-		entry = (priority, self.count, item)
-		hq.heappush(self.heap, entry)
-		self.count += 1
-
-	def pop(self):
-		(_, _, item) = hq.heappop(self.heap)
-		return item
-
-	def isEmpty(self):
-		return len(self.heap) == 0
-
-	def update(self, item, priority):
-		# If item already in priority queue with higher priority, update its priority and rebuild the heap.
-		# If item already in priority queue with equal or lower priority, do nothing.
-		# If item not in priority queue, do the same thing as self.push.
-		for index, (p, c, i) in enumerate(self.heap):
-			if i == item:
-				if p <= priority:
-					break
-				del self.heap[index]
-				self.heap.append((priority, c, item))
-				hq.heapify(self.heap)
-				break
-		else:
-			self.push(item, priority)
 
 def AStarSearch(start_coords, goal_coords, G):
 	tree = TreeList()
@@ -137,34 +101,7 @@ def AStarSearch(start_coords, goal_coords, G):
 			# add node to visited
 			visited.append(node_loc)
 
-def build_graph(occupancy_map):
-	H, W = occupancy_map.shape
-	G = nx.grid_2d_graph(*occupancy_map.shape)
 
-	G.add_edges_from([
-	    ((x, y), (x+1, y+1))
-	    for x in range(1, H-1)
-	    for y in range(1, W-1)
-	] + [
-	    ((x, y), (x-1, y-1))
-	    for x in range(1, H-1)
-	    for y in range(1, W-1)
-	] + [
-	    ((x, y), (x-1, y+1))
-	    for x in range(1, H-1)
-	    for y in range(1, W-1)
-	] + [
-	    ((x, y), (x+1, y-1))
-	    for x in range(1, H-1)
-	    for y in range(1, W-1)
-	])
-
-	# remove those nodes where the corresponding value is != 0
-	for val, node in zip(occupancy_map.ravel(), sorted(G.nodes())):
-	    if val!=cfg.MAP.COLLISION_VAL:
-	        G.remove_node(node)
-
-	return G
 
 
 occ_map_path = f'{cfg.PATH.OCC_MAP}/2t7WUuJeko7_0'
@@ -178,3 +115,11 @@ end_coords = random.choice(reachable_locs)
 #AStarSearch()
 
 path = AStarSearch(start_coords, end_coords, G)
+path = np.array(path) # N x 2
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), dpi=125)
+ax.imshow(occupancy_map, cmap='gray', vmin=0, vmax=1)
+num_points = path.shape[0]
+ax.scatter(path[:, 1], path[:, 0], c=range(num_points), cmap='viridis', s=np.linspace(4, 2, num=num_points)**2)
+fig.tight_layout()
+plt.show()
