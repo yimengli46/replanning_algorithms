@@ -18,7 +18,6 @@ class LPA:
 		self.s_goal = s_goal
 
 		self.visited = set()
-		self.count = 0
 		self.count_va = 0
 
 
@@ -40,7 +39,6 @@ class LPA:
 		k2 = min(self.g[s], self.rhs[s])
 		return k1, k2
 
-
 	def h(self, s):
 		goal = self.s_goal
 		dist = math.sqrt((s[0] - goal[0])**2 + (s[1] - goal[1])**2)
@@ -49,7 +47,7 @@ class LPA:
 	def updateVertex(self, s, G):
 		if s != self.s_start:
 			neis = list(G.neighbors(s))
-			self.rhs[s] = min(self.g[s_n] + self.cost(s_n, s) for s_n in neis)
+			self.rhs[s] = min(self.g[s_n] + self.cost(s_n, s, G) for s_n in neis)
 
 		self.U.remove(s)
 
@@ -59,12 +57,12 @@ class LPA:
 			self.U.update(s, k1, k2)
 
 		self.count_va += 1
+		self.visited.add(s)
 
 
-	def cost(self, s1, s2):
+	def cost(self, s1, s2, G):
 		dist = math.sqrt((s1[0] - s2[0])**2 + (s1[1] - s2[1])**2)
 		return dist
-
 
 	def computeShortestPath(self, G):
 		while True:
@@ -131,6 +129,7 @@ lpa.computeShortestPath(G)
 
 path = lpa.extract_path(G)
 path = np.array(path) # N x 2
+print(f'len(path) = {len(path)}')
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), dpi=125)
 ax.imshow(occupancy_map, cmap='gray', vmin=0, vmax=1)
@@ -160,6 +159,7 @@ for obs in obstacles:
 lpa.computeShortestPath(G_prime)
 path = lpa.extract_path(G_prime)
 path = np.array(path) # N x 2
+print(f'len(path) = {len(path)}')
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), dpi=125)
 ax.imshow(occupancy_map, cmap='gray', vmin=0, vmax=1)

@@ -60,6 +60,7 @@ class TreeList():
 		
 		while True:
 			if node.parent is None:
+				locs.append(node.loc)
 				break
 			locs.append(node.loc)
 			parent_node = node.parent
@@ -75,6 +76,8 @@ class AStar:
 		self.tree = TreeList()
 		self.visited = set()
 		self.Q = PriorityQueue()
+
+		self.count_va = 0
 
 
 	def computeShortestPath(self, G):
@@ -102,6 +105,8 @@ class AStar:
 						heur = math.sqrt((nei[0] - self.s_goal[0])**2 + (nei[1] - self.s_goal[1])**2)
 						# update Q
 						self.Q.update(nei, new_node.cost + heur)
+						self.count_va += 1
+						self.visited.add(nei)
 				# add node to visited
 				self.visited.add(node_loc)
 
@@ -122,6 +127,7 @@ end_coords = (76, 109)
 astar = AStar(start_coords, end_coords)
 path = astar.computeShortestPath(G)
 path = np.array(path) # N x 2
+print(f'len(path) = {len(path)}')
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), dpi=125)
 ax.imshow(occupancy_map, cmap='gray', vmin=0, vmax=1)
@@ -129,5 +135,32 @@ num_points = path.shape[0]
 ax.scatter(path[:, 1], path[:, 0], c=range(num_points), cmap='viridis', s=np.linspace(4, 2, num=num_points)**2, zorder=2)
 visited_points = np.array(list(astar.visited))
 ax.scatter(visited_points[:, 1], visited_points[:, 0], c='c', marker='s')
+ax.get_xaxis().set_visible(False)
+ax.get_yaxis().set_visible(False)
 fig.tight_layout()
 plt.show()
+
+# update occupancy map
+obstacles = [(53, 83), (53, 84), (53, 85), (53, 86), (53, 87), (53, 88), (53, 89)]
+for obs in obstacles:
+	occupancy_map[obs] = 0
+G_prime = build_graph(occupancy_map)
+
+astar = AStar(start_coords, end_coords)
+path = astar.computeShortestPath(G_prime)
+path = np.array(path) # N x 2
+print(f'len(path) = {len(path)}')
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), dpi=125)
+ax.imshow(occupancy_map, cmap='gray', vmin=0, vmax=1)
+num_points = path.shape[0]
+ax.scatter(path[:, 1], path[:, 0], c=range(num_points), cmap='viridis', s=np.linspace(4, 2, num=num_points)**2, zorder=2)
+visited_points = np.array(list(astar.visited))
+ax.scatter(visited_points[:, 1], visited_points[:, 0], c='c', marker='s')
+ax.get_xaxis().set_visible(False)
+ax.get_yaxis().set_visible(False)
+fig.tight_layout()
+plt.show()
+
+print(f've = {len(astar.visited)}')
+print(f'va = {astar.count_va}')
