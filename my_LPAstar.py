@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from config import _C as cfg
 import networkx as nx
 import random
-from utils import PQ_2keys, build_graph
+from utils import PQ_2keys, build_graph_full
 import math
 
 random.seed(cfg.GENERAL.RANDOM_SEED)
@@ -57,11 +57,12 @@ class LPA:
 			self.U.update(s, k1, k2)
 
 		self.count_va += 1
-		self.visited.add(s)
+		#self.visited.add(s)
 
 
 	def cost(self, s1, s2, G):
-		dist = math.sqrt((s1[0] - s2[0])**2 + (s1[1] - s2[1])**2)
+		#dist = math.sqrt((s1[0] - s2[0])**2 + (s1[1] - s2[1])**2)
+		dist = G[s1][s2]['weight']
 		return dist
 
 	def computeShortestPath(self, G):
@@ -111,10 +112,11 @@ class LPA:
 		self.visited = set()
 		self.count_va = 0
 
+'''
 occ_map_path = f'{cfg.PATH.OCC_MAP}/2t7WUuJeko7_0'
 occupancy_map = np.load(f'{occ_map_path}/BEV_occupancy_map.npy', allow_pickle=True).item()['occupancy']
 
-G = build_graph(occupancy_map)
+G = build_graph_full(occupancy_map)
 
 #start_coords = random.choice(list(G.nodes))
 #reachable_locs = list(nx.node_connected_component(G, start_coords))
@@ -142,15 +144,16 @@ ax.get_yaxis().set_visible(False)
 fig.tight_layout()
 plt.show()
 
+
 # update occupancy map
 obstacles = [(53, 83), (53, 84), (53, 85), (53, 86), (53, 87), (53, 88), (53, 89)]
 for obs in obstacles:
 	occupancy_map[obs] = 0
-G_prime = build_graph(occupancy_map)
+	G_prime = build_graph_full(occupancy_map)
 
 lpa.reset()
 for obs in obstacles:
-	u_succ = list(G.neighbors(obs))
+	u_succ = list(G_prime.neighbors(obs))
 	for u in u_succ:
 		if u in G_prime.nodes:
 			lpa.updateVertex(u, G_prime)
@@ -174,3 +177,4 @@ plt.show()
 
 print(f've = {len(lpa.visited)}')
 print(f'va = {lpa.count_va}')
+'''

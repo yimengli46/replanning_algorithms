@@ -106,13 +106,13 @@ class AStar:
 						# update Q
 						self.Q.update(nei, new_node.cost + heur)
 						self.count_va += 1
-						self.visited.add(nei)
+						#self.visited.add(nei)
 				# add node to visited
 				self.visited.add(node_loc)
 
 
 
-
+'''
 occ_map_path = f'{cfg.PATH.OCC_MAP}/2t7WUuJeko7_0'
 occupancy_map = np.load(f'{occ_map_path}/BEV_occupancy_map.npy', allow_pickle=True).item()['occupancy']
 
@@ -164,3 +164,5 @@ plt.show()
 
 print(f've = {len(astar.visited)}')
 print(f'va = {astar.count_va}')
+
+'''

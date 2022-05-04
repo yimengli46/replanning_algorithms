@@ -2,6 +2,7 @@ import heapq as hq
 import networkx as nx 
 import numpy as np
 from config import _C as cfg
+import math
 
 class PriorityQueue:
 	"""
@@ -94,26 +95,64 @@ def build_graph(occupancy_map):
 	G = nx.grid_2d_graph(*occupancy_map.shape)
 
 	G.add_edges_from([
-	    ((x, y), (x+1, y+1))
-	    for x in range(1, H-1)
-	    for y in range(1, W-1)
+		((x, y), (x+1, y+1))
+		for x in range(1, H-1)
+		for y in range(1, W-1)
 	] + [
-	    ((x, y), (x-1, y-1))
-	    for x in range(1, H-1)
-	    for y in range(1, W-1)
+		((x, y), (x-1, y-1))
+		for x in range(1, H-1)
+		for y in range(1, W-1)
 	] + [
-	    ((x, y), (x-1, y+1))
-	    for x in range(1, H-1)
-	    for y in range(1, W-1)
+		((x, y), (x-1, y+1))
+		for x in range(1, H-1)
+		for y in range(1, W-1)
 	] + [
-	    ((x, y), (x+1, y-1))
-	    for x in range(1, H-1)
-	    for y in range(1, W-1)
+		((x, y), (x+1, y-1))
+		for x in range(1, H-1)
+		for y in range(1, W-1)
 	])
 
 	# remove those nodes where the corresponding value is != 0
 	for val, node in zip(occupancy_map.ravel(), sorted(G.nodes())):
-	    if val != cfg.MAP.FREE_VAL:
-	        G.remove_node(node)
+		if val != cfg.MAP.FREE_VAL:
+			G.remove_node(node)
+
+	return G
+
+def build_graph_full(occupancy_map):
+	H, W = occupancy_map.shape
+	G = nx.grid_2d_graph(*occupancy_map.shape)
+
+	G.add_edges_from([
+		((x, y), (x+1, y+1))
+		for x in range(1, H-1)
+		for y in range(1, W-1)
+	] + [
+		((x, y), (x-1, y-1))
+		for x in range(1, H-1)
+		for y in range(1, W-1)
+	] + [
+		((x, y), (x-1, y+1))
+		for x in range(1, H-1)
+		for y in range(1, W-1)
+	] + [
+		((x, y), (x+1, y-1))
+		for x in range(1, H-1)
+		for y in range(1, W-1)
+	])
+
+	# remove those nodes where the corresponding value is != 0
+	for val, node in zip(occupancy_map.ravel(), sorted(G.nodes())):
+		if val == cfg.MAP.FREE_VAL:
+			neis = list(G.neighbors(node))
+			for nei in neis:
+				if occupancy_map[nei] == cfg.MAP.FREE_VAL:
+					G[node][nei]['weight'] = math.sqrt((node[0] - nei[0])**2 + (node[1] - nei[1])**2)
+				else:
+					G[node][nei]['weight'] = float('inf')
+		else:
+			neis = list(G.neighbors(node))
+			for nei in neis:
+				G[node][nei]['weight'] = float('inf')
 
 	return G
